@@ -1,4 +1,4 @@
-﻿angular.module('autoFields', ['ui.bootstrap'])
+angular.module('autoFields', ['ui.bootstrap'])
 .directive('autoFields', ['$compile', function ($compile, $rootScope) {
 	return {
 		restrict: 'E',
@@ -9,15 +9,17 @@
 				var schemaStr = $attr.fields || $attr.autoFields,
 					optionsStr = $attr.options,
 					dataStr = $attr.data,
-					container = null;
+          formStr = $attr.form,
+					container = null,
+          errorPreffix = '';
 
 				var options = {
 					classes: {
-						formGroup: 'form-group',
+						formGroup: 'control-group',
 						input: 'form-control',
 						col: 'col-sm-'
 					},
-					container: '<div class="autoFields" ng-form name="autoFields"></div>',
+					container: '<div class="autoFields" ng-form name="' + formStr +'"></div>',
 					defaultOption: 'Select One',
 					dateSettings: {
 						showWeeks: false
@@ -29,7 +31,10 @@
 				if ($scope.tabIndex == null) $scope.tabIndex = 1;
 
 				var getField = function (field, index) {
-					var fieldEl = '<div class="' + options.classes.formGroup + ' ' + field.type + '">';
+					var fieldEl = '<div class="' + options.classes.formGroup + ' ' + field.type + '" ' + 
+                  'ng-class="{error:' + errorPreffix +'.$invalid && '+ errorPreffix + '.$dirty, ' +
+                  'success:' + errorPreffix +'.$valid && '+ errorPreffix + '.$dirty}'+
+                  '">';
 					switch (field.type) {
 						case 'checkbox':
 							fieldEl += checkbox(field, index);
@@ -52,6 +57,7 @@
 						default:
 							fieldEl += label(field);
 							fieldEl += textInput(field, index);
+							fieldEl += validation(field, index);
 							break;
 					}
 					fieldEl += '</div>';
@@ -64,7 +70,7 @@
 				}
 
 				var label = function (field) {
-					return '<label for="' + field.property + '">' + labelText(field) + '</label>';
+					return '<label for="' + field.property + '" class="control-label" >' + labelText(field) + '</label>';
 				};
 
 				var row = function (field, index) {
@@ -126,6 +132,23 @@
 					input += '></input>';
 					return input;
 				};
+        
+        var validation = function(field, index) {
+          var input = '';
+          input += '<div class="controls error" ng-show="';
+          input += errorPreffix + '.$dirty  && ' + errorPreffix + '.$invalid"> ';
+          input += '<span class="help-inline error" ng-show="';
+          input += errorPreffix + '.$error.required">';
+          input += firstToUpper(field.property) + ' - Required.</span>';
+          if(field.errorMsg != null) {
+            input += '<span class="help-inline error" ng-show="';
+            input += errorPreffix + '.$invalid && !' + errorPreffix + '$error.required">';
+            input += firstToUpper(field.property) + ' - ' + field.errorMsg;
+            input += '</span>';
+          }
+          input += '</div>';
+          return input;
+        };
 
 				var attributes = function (attributes, index) {
 					var htmlAttr = [];
@@ -141,6 +164,8 @@
 					//rebuild form
 					container.html('');
 					angular.forEach(schema, function (field, index) {
+            errorPreffix = formStr;
+            errorPreffix +='.' + field.property;
 						container.append(getField(field, index));
 					});
 
@@ -166,6 +191,9 @@
 				};
 				var CamelToDash = function (str) {
 					return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+				}
+				var firstToUpper = function (str) {
+					return str.substr(0, 1).toUpperCase() + str.substr(1);
 				}
 			}
 		}
